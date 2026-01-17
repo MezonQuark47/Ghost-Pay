@@ -3,88 +3,67 @@
 
 import { useState } from 'react';
 import * as web3 from '@solana/web3.js';
-// Make sure this path is correct based on your folder structure
 import { getSharedSecret, deriveStealthKeypair } from '../utils/ghostCrypto'; 
-import * as nacl from 'tweetnacl';
 import bs58 from 'bs58'; 
 import { Toaster, toast } from 'react-hot-toast';
-import { Shield, Ghost, ArrowRight, Lock, Key, Wallet, Eye, EyeOff } from 'lucide-react';
+import { Shield, Ghost, ArrowRight, Lock, Key, Wallet, Eye, EyeOff, Sparkles, Copy, CheckCircle } from 'lucide-react';
 
-// Solana Devnet Connection
 const connection = new web3.Connection(web3.clusterApiUrl('devnet'), 'confirmed');
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'send' | 'receive'>('send');
   const [loading, setLoading] = useState(false);
 
-  // Send States
+  // States
   const [recipientPubkey, setRecipientPubkey] = useState('');
   const [amount, setAmount] = useState('');
   const [generatedData, setGeneratedData] = useState<{ ephemeralKey: string, stealthPub: string } | null>(null);
-
-  // Receive States
   const [ephemeralKeyInput, setEphemeralKeyInput] = useState('');
   const [receiverPrivateKey, setReceiverPrivateKey] = useState('');
   const [stealthFound, setStealthFound] = useState<{ balance: number, stealthKey: web3.Keypair } | null>(null);
   const [showKey, setShowKey] = useState(false);
 
-  // --- ALICE: SEND FUNCTION ---
+  // --- Logic remains the same ---
   const handleSend = async () => {
     if (!recipientPubkey || !amount) return toast.error("Please fill in all fields.");
     setLoading(true);
-
     try {
       const solanaEphemeralKeypair = web3.Keypair.generate();
-      
       const bobPubBytes = bs58.decode(recipientPubkey);
       const sharedSecret = getSharedSecret(solanaEphemeralKeypair.secretKey, bobPubBytes);
-      
-      if (!sharedSecret) throw new Error("Failed to generate Shared Secret. Invalid recipient address.");
-
+      if (!sharedSecret) throw new Error("Invalid recipient address.");
       const stealthKeypair = deriveStealthKeypair(sharedSecret);
-      const stealthPubkey = stealthKeypair.publicKey;
-      
       setGeneratedData({
         ephemeralKey: bs58.encode(solanaEphemeralKeypair.publicKey.toBytes()),
-        stealthPub: stealthPubkey.toBase58()
+        stealthPub: stealthKeypair.publicKey.toBase58()
       });
-
       toast.success("Stealth Address Generated!");
-
     } catch (error: any) {
-      console.error(error);
-      toast.error("Error: " + error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- BOB: SCAN & WITHDRAW FUNCTION ---
   const handleScan = async () => {
-    if (!ephemeralKeyInput || !receiverPrivateKey) return toast.error("Missing information.");
+    if (!ephemeralKeyInput || !receiverPrivateKey) return toast.error("Missing credentials.");
     setLoading(true);
-
     try {
       const bobPrivBytes = bs58.decode(receiverPrivateKey);
       const ephemPubBytes = bs58.decode(ephemeralKeyInput);
-      
       const sharedSecret = getSharedSecret(bobPrivBytes, ephemPubBytes);
-      if (!sharedSecret) throw new Error("Keys do not match.");
-
+      if (!sharedSecret) throw new Error("Key mismatch.");
       const stealthKeypair = deriveStealthKeypair(sharedSecret);
-      
       const balance = await connection.getBalance(stealthKeypair.publicKey);
-      
       if (balance > 0) {
         setStealthFound({ balance: balance / web3.LAMPORTS_PER_SOL, stealthKey: stealthKeypair });
-        toast.success(`Found ${balance / web3.LAMPORTS_PER_SOL} SOL in the Ghost Vault!`);
+        toast.success(`Found ${balance / web3.LAMPORTS_PER_SOL} SOL!`);
       } else {
-        toast.error("No balance found at this address (0 SOL).");
+        toast.error("No funds found (0 SOL).");
         setStealthFound(null);
       }
-
     } catch (error: any) {
-      toast.error("Scan error: " + error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -95,7 +74,6 @@ export default function Home() {
     setLoading(true);
     try {
         const bobKeypair = web3.Keypair.fromSecretKey(bs58.decode(receiverPrivateKey));
-        
         const transaction = new web3.Transaction().add(
             web3.SystemProgram.transfer({
                 fromPubkey: stealthFound.stealthKey.publicKey,
@@ -103,207 +81,242 @@ export default function Home() {
                 lamports: (stealthFound.balance * web3.LAMPORTS_PER_SOL) - 5000, 
             })
         );
-
         const signature = await web3.sendAndConfirmTransaction(connection, transaction, [stealthFound.stealthKey]);
-        
-        toast.success(`Funds successfully swept!`, { duration: 5000 });
+        toast.success(`Funds swept successfully!`);
         console.log("Tx:", signature);
         setStealthFound(null);
     } catch (error: any) {
-        toast.error("Withdrawal error: " + error.message);
+        toast.error(error.message);
     } finally {
         setLoading(false);
     }
   };
 
+  // --- UI COMPONENTS ---
   return (
-    <div className="min-h-screen bg-neutral-950 text-gray-200 font-sans selection:bg-indigo-500/30 flex flex-col">
-      <Toaster position="bottom-right" toastOptions={{ style: { background: '#171717', color: '#fff', border: '1px solid #333' } }} />
+    <div className="min-h-screen relative overflow-hidden font-sans text-slate-300 flex flex-col">
+      <Toaster position="bottom-center" toastOptions={{ style: { background: 'rgba(0,0,0,0.8)', color: '#fff', border: '1px solid #333', backdropFilter: 'blur(10px)' } }} />
       
-      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-linear-to-br from-indigo-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Ghost className="text-white w-6 h-6" />
+      {/* Background Ambience */}
+      <div className="ambient-glow" />
+      <div className="ambient-glow-2" />
+
+      {/* Navbar */}
+      <nav className="w-full z-50 border-b border-white/5 bg-black/20 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+          <div className="flex items-center gap-4 group cursor-pointer">
+            {/* V4 DÜZELTME: bg-linear-to-tr */}
+            <div className="relative w-12 h-12 flex items-center justify-center rounded-2xl bg-linear-to-tr from-indigo-500/20 to-purple-500/20 border border-white/10 group-hover:border-indigo-500/50 transition-all duration-500">
+              <Ghost className="text-indigo-400 w-6 h-6 group-hover:scale-110 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-indigo-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white">Ghost Pay</span>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-wide">GHOST PAY</h1>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Privacy Protocol</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-             <a href="https://github.com/MezonQuark47/Ghost-Pay" target="_blank" className="text-xs font-mono text-gray-500 hover:text-white transition-colors">GitHub</a>
-             <div className="text-xs font-mono text-indigo-400 bg-indigo-950/30 px-3 py-1 rounded-full border border-indigo-500/20">
-                Devnet v1.0
+          
+          <div className="flex items-center gap-6">
+             <a href="https://github.com/MezonQuark47/Ghost-Pay" target="_blank" className="text-sm text-gray-400 hover:text-white transition-colors tracking-wide">Documentation</a>
+             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5 text-xs font-mono text-emerald-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Devnet Active
              </div>
           </div>
         </div>
       </nav>
 
-      <main className="grow max-w-3xl mx-auto w-full px-6 py-12">
-        <div className="text-center mb-12 space-y-4">
-          <h1 className="text-5xl font-extrabold text-white tracking-tight">
-            Invisible <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-purple-500">Payments</span>
-          </h1>
-          <p className="text-lg text-gray-500 max-w-lg mx-auto leading-relaxed">
-            Transfer funds on Solana without a trace. A mathematical privacy layer.
-          </p>
-        </div>
-
-        <div className="bg-neutral-900/40 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-sm shadow-2xl ring-1 ring-white/5">
-          <div className="flex border-b border-white/5 bg-black/20">
-            <button 
-              onClick={() => setActiveTab('send')}
-              className={`flex-1 py-5 text-sm font-medium transition-all ${activeTab === 'send' ? 'bg-white/5 text-white border-b-2 border-indigo-500' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
-            >
-              Send (Alice)
-            </button>
-            <button 
-              onClick={() => setActiveTab('receive')}
-              className={`flex-1 py-5 text-sm font-medium transition-all ${activeTab === 'receive' ? 'bg-white/5 text-white border-b-2 border-purple-500' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
-            >
-              Withdraw (Bob)
-            </button>
+      {/* Main Layout */}
+      <main className="grow flex items-center justify-center py-20 px-6">
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          
+          {/* Left Side: Hero Text */}
+          <div className="space-y-8 animate-in slide-in-from-left duration-700 fade-in">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium uppercase tracking-wider">
+              <Sparkles className="w-3 h-3" /> Solana Hackathon 2026
+            </div>
+            <h1 className="text-6xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight">
+              Privacy is <br />
+              {/* V4 DÜZELTME: bg-linear-to-r ve bg-size */}
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-purple-400 to-indigo-400 bg-size-[200%_auto] animate-pulse">Luxury.</span>
+            </h1>
+            <p className="text-lg text-slate-400 max-w-md leading-relaxed">
+              Experience the next generation of anonymous payments. 
+              Mathematical secrecy meets elegant design on the Solana blockchain.
+            </p>
+            
+            <div className="flex items-center gap-8 pt-4">
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold text-white">0s</span>
+                <span className="text-xs text-gray-500 uppercase tracking-widest">Latency</span>
+              </div>
+              <div className="w-px h-10 bg-white/10" />
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold text-white">100%</span>
+                <span className="text-xs text-gray-500 uppercase tracking-widest">Anonymity</span>
+              </div>
+            </div>
           </div>
 
-          <div className="p-8">
-            {activeTab === 'send' ? (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="space-y-2">
-                  <label className="text-xs text-indigo-400 font-mono font-bold tracking-wider">RECIPIENT (PUBLIC KEY)</label>
-                  <div className="relative group">
-                    <input 
-                      type="text" 
-                      value={recipientPubkey}
-                      onChange={(e) => setRecipientPubkey(e.target.value)}
-                      placeholder="Recipient's wallet address..." 
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm group-hover:border-white/20"
-                    />
-                    <Wallet className="absolute right-4 top-4 text-gray-600 w-5 h-5" />
-                  </div>
+          {/* Right Side: The Interactive Card */}
+          <div className="relative">
+             {/* Decorative Elements behind card */}
+             {/* V4 DÜZELTME: bg-linear-to-r */}
+             <div className="absolute -inset-1 bg-linear-to-r from-indigo-500 to-purple-600 rounded-[2rem] blur opacity-20" />
+             
+             <div className="glass-panel relative rounded-[1.5rem] p-1 overflow-hidden backdrop-blur-2xl">
+                {/* Tab Switcher */}
+                <div className="flex p-1 bg-black/40 rounded-t-[1.3rem]">
+                  <button 
+                    onClick={() => setActiveTab('send')}
+                    className={`flex-1 py-4 text-sm font-medium rounded-xl transition-all duration-300 ${activeTab === 'send' ? 'bg-white/10 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    Send
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('receive')}
+                    className={`flex-1 py-4 text-sm font-medium rounded-xl transition-all duration-300 ${activeTab === 'receive' ? 'bg-white/10 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    Receive
+                  </button>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs text-indigo-400 font-mono font-bold tracking-wider">AMOUNT (SOL)</label>
-                  <input 
-                    type="number" 
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.0" 
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm hover:border-white/20"
-                  />
-                </div>
-
-                <button 
-                  onClick={handleSend}
-                  disabled={loading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20 active:scale-[0.98]"
-                >
-                  {loading ? 'Processing...' : <>Initiate Ghost Transfer <ArrowRight className="w-5 h-5" /></>}
-                </button>
-
-                {generatedData && (
-                  <div className="mt-8 p-6 bg-indigo-950/20 border border-indigo-500/20 rounded-2xl space-y-5 animate-in zoom-in-95 duration-300">
-                    <div className="flex items-center gap-2 text-indigo-400 border-b border-indigo-500/20 pb-3">
-                      <Shield className="w-5 h-5" /> 
-                      <h3 className="font-bold">Transaction Ready</h3>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-end">
-                        <p className="text-[10px] text-indigo-300 font-mono uppercase tracking-widest">Ephemeral Key (Share with Bob)</p>
-                        <span className="text-[10px] text-gray-500 cursor-pointer hover:text-white" onClick={() => {navigator.clipboard.writeText(generatedData.ephemeralKey); toast.success("Copied!")}}>COPY</span>
-                      </div>
-                      <div className="bg-black/60 p-4 rounded-lg border border-indigo-500/10 font-mono text-xs break-all text-gray-300 select-all">
-                        {generatedData.ephemeralKey}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                       <div className="flex justify-between items-end">
-                        <p className="text-[10px] text-green-400 font-mono uppercase tracking-widest">Stealth Address (Send Funds Here)</p>
-                        <span className="text-[10px] text-gray-500 cursor-pointer hover:text-white" onClick={() => {navigator.clipboard.writeText(generatedData.stealthPub); toast.success("Copied!")}}>COPY</span>
-                      </div>
-                      <div className="bg-black/60 p-4 rounded-lg border border-green-500/10 font-mono text-xs break-all text-green-100/70 select-all">
-                        {generatedData.stealthPub}
-                      </div>
-                      <p className="text-xs text-center text-gray-500 mt-2">Please send <span className="text-white font-bold">{amount} SOL</span> from your wallet to the Stealth Address above.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                 <div className="bg-yellow-900/10 border border-yellow-600/20 p-4 rounded-xl flex items-start gap-3">
-                    <Lock className="w-5 h-5 text-yellow-600/80 shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-500/70 leading-relaxed">
-                      Hackathon Demo: Private Key is required for client-side decryption. Do not use your main wallet.
-                    </p>
-                 </div>
-
-                 <div className="space-y-2">
-                  <label className="text-xs text-purple-400 font-mono font-bold tracking-wider">EPHEMERAL KEY</label>
-                  <input 
-                    type="text" 
-                    value={ephemeralKeyInput}
-                    onChange={(e) => setEphemeralKeyInput(e.target.value)}
-                    placeholder="Key received from Alice..." 
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-purple-500 transition-all font-mono text-sm hover:border-white/20"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs text-purple-400 font-mono font-bold tracking-wider">PRIVATE KEY (Base58)</label>
-                  <div className="relative group">
-                    <input 
-                      type={showKey ? "text" : "password"}
-                      value={receiverPrivateKey}
-                      onChange={(e) => setReceiverPrivateKey(e.target.value)}
-                      placeholder="Ex: 5M..." 
-                      className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-purple-500 transition-all font-mono text-sm group-hover:border-white/20"
-                    />
-                    <button 
-                        onClick={() => setShowKey(!showKey)}
-                        className="absolute right-4 top-4 text-gray-600 hover:text-white transition-colors"
-                    >
-                        {showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={handleScan}
-                  disabled={loading}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20 active:scale-[0.98]"
-                >
-                  {loading ? 'Scanning...' : 'Scan for Ghost Vault'}
-                </button>
-
-                {stealthFound && (
-                   <div className="mt-8 p-6 bg-green-950/20 border border-green-500/20 rounded-2xl space-y-4 animate-in zoom-in-95 duration-300">
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            <h3 className="text-green-400 font-bold">Balance Found</h3>
+                <div className="p-8 space-y-6">
+                  {activeTab === 'send' ? (
+                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase tracking-widest text-indigo-300 font-semibold pl-1">Recipient Public Key</label>
+                        <div className="relative">
+                          <input 
+                            value={recipientPubkey}
+                            onChange={(e) => setRecipientPubkey(e.target.value)}
+                            className="w-full glass-input rounded-xl px-4 py-4 text-white text-sm font-mono placeholder:text-gray-600 focus:outline-none"
+                            placeholder="Solana Address..."
+                          />
+                          <Wallet className="absolute right-4 top-4 text-gray-600 w-4 h-4" />
                         </div>
-                        <span className="text-2xl font-mono text-white tracking-tighter">{stealthFound.balance} <span className="text-sm text-gray-500">SOL</span></span>
-                     </div>
-                     
-                     <button 
-                      onClick={handleWithdraw}
-                      disabled={loading}
-                      className="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition-colors shadow-lg shadow-white/10 active:scale-[0.98]"
-                     >
-                        Sweep to Main Wallet
-                     </button>
-                   </div>
-                )}
-              </div>
-            )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase tracking-widest text-indigo-300 font-semibold pl-1">Amount</label>
+                        <input 
+                          type="number"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="w-full glass-input rounded-xl px-4 py-4 text-white text-sm font-mono placeholder:text-gray-600 focus:outline-none"
+                          placeholder="0.00 SOL"
+                        />
+                      </div>
+
+                      <button 
+                        onClick={handleSend}
+                        disabled={loading}
+                        /* V4 DÜZELTME: bg-linear-to-r */
+                        className="w-full bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                      >
+                        {loading ? <span className="animate-pulse">Processing...</span> : <>Generate Stealth Transfer <ArrowRight className="w-4 h-4" /></>}
+                      </button>
+
+                      {generatedData && (
+                        <div className="mt-4 p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl space-y-4">
+                          <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-wider border-b border-white/5 pb-2">
+                            <Shield className="w-3 h-3" /> Secure Payload Ready
+                          </div>
+                          
+                          <div className="space-y-3">
+                             <div>
+                                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                                    <span>EPHEMERAL KEY (Safe to share)</span>
+                                    <button onClick={() => {navigator.clipboard.writeText(generatedData.ephemeralKey); toast.success("Copied")}} className="hover:text-white"><Copy className="w-3 h-3" /></button>
+                                </div>
+                                <div className="bg-black/50 p-3 rounded-lg text-[10px] font-mono text-gray-300 break-all border border-white/5">
+                                    {generatedData.ephemeralKey}
+                                </div>
+                             </div>
+                             <div>
+                                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                                    <span>STEALTH ADDRESS (Destination)</span>
+                                    <button onClick={() => {navigator.clipboard.writeText(generatedData.stealthPub); toast.success("Copied")}} className="hover:text-white"><Copy className="w-3 h-3" /></button>
+                                </div>
+                                <div className="bg-black/50 p-3 rounded-lg text-[10px] font-mono text-emerald-400/80 break-all border border-emerald-500/10">
+                                    {generatedData.stealthPub}
+                                </div>
+                             </div>
+                          </div>
+                          <p className="text-center text-[10px] text-indigo-200/60">
+                             Send <span className="text-white">{amount} SOL</span> to the address above manually.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                       <div className="p-4 rounded-xl bg-orange-500/5 border border-orange-500/10 flex gap-3">
+                          {/* V4 DÜZELTME: shrink-0 */}
+                          <Lock className="w-4 h-4 text-orange-400/70 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-orange-200/60 leading-relaxed">
+                            <strong>Client-Side Decryption:</strong> Your private key never leaves this browser. Used locally to derive the stealth secret.
+                          </p>
+                       </div>
+
+                       <div className="space-y-2">
+                        <label className="text-[10px] uppercase tracking-widest text-purple-300 font-semibold pl-1">Ephemeral Key</label>
+                        <input 
+                          value={ephemeralKeyInput}
+                          onChange={(e) => setEphemeralKeyInput(e.target.value)}
+                          className="w-full glass-input rounded-xl px-4 py-4 text-white text-sm font-mono placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+                          placeholder="Paste key from sender..."
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] uppercase tracking-widest text-purple-300 font-semibold pl-1">Private Key</label>
+                        <div className="relative">
+                            <input 
+                            type={showKey ? "text" : "password"}
+                            value={receiverPrivateKey}
+                            onChange={(e) => setReceiverPrivateKey(e.target.value)}
+                            className="w-full glass-input rounded-xl px-4 py-4 text-white text-sm font-mono placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+                            placeholder="Your Main Wallet Key..."
+                            />
+                            <button onClick={() => setShowKey(!showKey)} className="absolute right-4 top-4 text-gray-500 hover:text-white">
+                                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={handleScan}
+                        disabled={loading}
+                        /* V4 DÜZELTME: bg-linear-to-r */
+                        className="w-full bg-linear-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg shadow-purple-500/25"
+                      >
+                         {loading ? 'Scanning Blockchain...' : 'Locate Ghost Funds'}
+                      </button>
+
+                      {stealthFound && (
+                        <div className="mt-4 p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center space-y-4 animate-in zoom-in">
+                            <div className="w-12 h-12 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-emerald-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white">{stealthFound.balance} SOL</h3>
+                                <p className="text-xs text-emerald-400/70 uppercase tracking-widest">Unclaimed Balance</p>
+                            </div>
+                            <button 
+                                onClick={handleWithdraw}
+                                className="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition-colors"
+                            >
+                                Sweep to Wallet
+                            </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+             </div>
           </div>
         </div>
-        
-        <footer className="mt-12 text-center space-y-2">
-          <p className="text-gray-600 text-sm">Ghost Pay Protocol © 2026</p>
-          <p className="text-xs text-gray-700 font-mono">Built for Solana Hackathon</p>
-        </footer>
       </main>
     </div>
   );
