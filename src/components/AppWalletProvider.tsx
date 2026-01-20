@@ -7,7 +7,7 @@ import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { clusterApiUrl } from '@solana/web3.js';
 
-// CSS Import (Modern Yöntem)
+// CSS Import
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export default function AppWalletProvider({
@@ -17,12 +17,16 @@ export default function AppWalletProvider({
 }) {
   const network = WalletAdapterNetwork.Devnet;
 
-  // 🚀 GÜNCELLEME: Helius RPC Bağlantısı
-  // .env dosyasında Helius linki varsa onu kullanır, yoksa varsayılan (yavaş) olana döner.
+  // 🚀 GÜNCELLEME: Kurşun Geçirmez URL Kontrolü
   const endpoint = useMemo(() => {
-    if (process.env.NEXT_PUBLIC_HELIUS_DEVNET_URL) {
-        return process.env.NEXT_PUBLIC_HELIUS_DEVNET_URL;
+    const heliusUrl = process.env.NEXT_PUBLIC_HELIUS_DEVNET_URL;
+
+    // 1. Helius linki var mı VE geçerli bir link mi (http ile başlıyor mu?)
+    if (heliusUrl && (heliusUrl.startsWith('http://') || heliusUrl.startsWith('https://'))) {
+        return heliusUrl;
     }
+
+    // 2. Yoksa veya hatalıysa, Solana'nın kendi public adresini kullan (Asla hata vermez)
     return clusterApiUrl(network);
   }, [network]);
 
