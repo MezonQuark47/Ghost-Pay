@@ -1,0 +1,169 @@
+{
+  "version": "0.1.0",
+  "name": "ghost_pay",
+  "instructions": [
+    {
+      "name": "initializePool",
+      "accounts": [
+        { "name": "ghostPool", "isMut": true, "isSigner": false },
+        { "name": "authority", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "createDeposit",
+      "accounts": [
+        { "name": "ghostPool", "isMut": true, "isSigner": false },
+        { "name": "deposit", "isMut": true, "isSigner": false },
+        { "name": "depositor", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "depositId", "type": "u64" },
+        { "name": "amount", "type": "u64" },
+        { "name": "stealthPubkeyHash", "type": { "array": ["u8", 32] } }
+      ]
+    },
+    {
+      "name": "fundDeposit",
+      "accounts": [
+        { "name": "deposit", "isMut": true, "isSigner": false },
+        { "name": "ghostPool", "isMut": false, "isSigner": false },
+        { "name": "depositorTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "poolTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "depositor", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "depositId", "type": "u64" }
+      ]
+    },
+    {
+      "name": "createWithdrawal",
+      "accounts": [
+        { "name": "deposit", "isMut": false, "isSigner": false },
+        { "name": "withdrawal", "isMut": true, "isSigner": false },
+        { "name": "payer", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "withdrawalId", "type": "u64" },
+        { "name": "depositId", "type": "u64" },
+        { "name": "amount", "type": "u64" },
+        { "name": "recipient", "type": "publicKey" },
+        { "name": "nullifier", "type": { "array": ["u8", 32] } }
+      ]
+    },
+    {
+      "name": "executeWithdrawal",
+      "accounts": [
+        { "name": "ghostPool", "isMut": true, "isSigner": false },
+        { "name": "deposit", "isMut": true, "isSigner": false },
+        { "name": "withdrawal", "isMut": true, "isSigner": false },
+        { "name": "poolTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "recipientTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "payer", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "commitWithdrawal",
+      "accounts": [
+        { "name": "withdrawal", "isMut": true, "isSigner": false },
+        { "name": "payer", "isMut": true, "isSigner": true }
+      ],
+      "args": []
+    },
+    {
+      "name": "commitDeposit",
+      "accounts": [
+        { "name": "deposit", "isMut": true, "isSigner": false },
+        { "name": "payer", "isMut": true, "isSigner": true }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GhostPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "authority", "type": "publicKey" },
+          { "name": "totalDeposits", "type": "u64" },
+          { "name": "totalWithdrawals", "type": "u64" },
+          { "name": "depositCount", "type": "u64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "Deposit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "depositId", "type": "u64" },
+          { "name": "depositor", "type": "publicKey" },
+          { "name": "amount", "type": "u64" },
+          { "name": "stealthPubkeyHash", "type": { "array": ["u8", 32] } },
+          { "name": "status", "type": { "defined": "DepositStatus" } },
+          { "name": "createdAt", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "Withdrawal",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "withdrawalId", "type": "u64" },
+          { "name": "depositId", "type": "u64" },
+          { "name": "amount", "type": "u64" },
+          { "name": "recipient", "type": "publicKey" },
+          { "name": "nullifier", "type": { "array": ["u8", 32] } },
+          { "name": "status", "type": { "defined": "WithdrawalStatus" } },
+          { "name": "createdAt", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "DepositStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          { "name": "Pending" },
+          { "name": "Funded" },
+          { "name": "Withdrawn" }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawalStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          { "name": "Pending" },
+          { "name": "Completed" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "InvalidDepositStatus", "msg": "Invalid deposit status" },
+    { "code": 6001, "name": "DepositNotFunded", "msg": "Deposit not funded" },
+    { "code": 6002, "name": "InsufficientFunds", "msg": "Insufficient funds" },
+    { "code": 6003, "name": "InvalidWithdrawalStatus", "msg": "Invalid withdrawal status" },
+    { "code": 6004, "name": "WithdrawalNotCompleted", "msg": "Withdrawal not completed" },
+    { "code": 6005, "name": "NullifierAlreadyUsed", "msg": "Nullifier already used" },
+    { "code": 6006, "name": "Unauthorized", "msg": "Unauthorized" }
+  ],
+  "metadata": {
+    "address": "3vVvYt4ryppt979B7CFHxKS4a4ibunnEzbgTs4Nd5zTm"
+  }
+}

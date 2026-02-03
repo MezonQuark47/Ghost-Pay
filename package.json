@@ -1,0 +1,36 @@
+{
+  "name": "ghost-pay",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@magicblock-labs/ephemeral-rollups-sdk": "^0.8.0",
+    "@magicblock-labs/gum-sdk": "^3.0.10",
+    "@solana/spl-token": "^0.4.6",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/wallet-adapter-react": "^0.15.35",
+    "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
+    "@solana/web3.js": "^1.95.0",
+    "bn.js": "^5.2.1",
+    "buffer": "^6.0.3",
+    "lucide-react": "^0.563.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vite-plugin-node-polyfills": "^0.25.0"
+  }
+}

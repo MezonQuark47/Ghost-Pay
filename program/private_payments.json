@@ -1,0 +1,156 @@
+{
+  "address": "EnhkomtzKms55jXi3ijn9XsMKYpMT4BJjmbuDQmPo3YS",
+  "metadata": {
+    "name": "private_payments",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "create_permission",
+      "discriminator": [190, 182, 26, 164, 156, 221, 8, 0],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "user" },
+        { "name": "deposit" },
+        { "name": "permission", "writable": true },
+        { "name": "permission_program" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate",
+      "discriminator": [90, 147, 75, 178, 85, 88, 4, 137],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "validator", "optional": true },
+        { "name": "buffer_deposit", "writable": true },
+        { "name": "delegation_record_deposit", "writable": true },
+        { "name": "delegation_metadata_deposit", "writable": true },
+        { "name": "deposit", "writable": true },
+        { "name": "owner_program", "address": "EnhkomtzKms55jXi3ijn9XsMKYpMT4BJjmbuDQmPo3YS" },
+        { "name": "delegation_program", "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "user", "type": "pubkey" },
+        { "name": "token_mint", "type": "pubkey" }
+      ]
+    },
+    {
+      "name": "initialize_deposit",
+      "discriminator": [171, 65, 93, 225, 61, 109, 31, 227],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "user" },
+        { "name": "deposit", "writable": true },
+        { "name": "token_mint" },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": []
+    },
+    {
+      "name": "modify_balance",
+      "discriminator": [148, 232, 7, 240, 55, 51, 121, 115],
+      "accounts": [
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "user", "signer": true },
+        { "name": "vault", "writable": true },
+        { "name": "deposit", "writable": true },
+        { "name": "user_token_account", "writable": true },
+        { "name": "vault_token_account", "writable": true },
+        { "name": "token_mint" },
+        { "name": "token_program", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+        { "name": "associated_token_program", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "args", "type": { "defined": { "name": "ModifyDepositArgs" } } }
+      ]
+    },
+    {
+      "name": "transfer_deposit",
+      "discriminator": [20, 20, 147, 223, 41, 63, 204, 111],
+      "accounts": [
+        { "name": "user" },
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "session_token", "optional": true },
+        { "name": "source_deposit", "writable": true },
+        { "name": "destination_deposit", "writable": true },
+        { "name": "token_mint" },
+        { "name": "system_program", "address": "11111111111111111111111111111111" }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "undelegate",
+      "discriminator": [131, 148, 180, 198, 91, 104, 42, 238],
+      "accounts": [
+        { "name": "user" },
+        { "name": "payer", "writable": true, "signer": true },
+        { "name": "session_token", "optional": true },
+        { "name": "deposit", "writable": true },
+        { "name": "magic_program", "address": "Magic11111111111111111111111111111111111111" },
+        { "name": "magic_context", "writable": true, "address": "MagicContext1111111111111111111111111111111" }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    { "name": "Deposit", "discriminator": [148, 146, 121, 66, 207, 173, 21, 227] },
+    { "name": "SessionToken", "discriminator": [233, 4, 115, 14, 46, 21, 1, 15] },
+    { "name": "Vault", "discriminator": [211, 8, 232, 43, 2, 152, 117, 119] }
+  ],
+  "errors": [
+    { "code": 6000, "name": "Unauthorized", "msg": "Unauthorized" }
+  ],
+  "types": [
+    {
+      "name": "Deposit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "user", "type": "pubkey" },
+          { "name": "token_mint", "type": "pubkey" },
+          { "name": "amount", "type": "u64" }
+        ]
+      }
+    },
+    {
+      "name": "ModifyDepositArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "amount", "type": "u64" },
+          { "name": "increase", "type": "bool" }
+        ]
+      }
+    },
+    {
+      "name": "SessionToken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "authority", "type": "pubkey" },
+          { "name": "target_program", "type": "pubkey" },
+          { "name": "session_signer", "type": "pubkey" },
+          { "name": "valid_until", "type": "i64" }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "_dummy", "type": "u8" }
+        ]
+      }
+    }
+  ]
+}

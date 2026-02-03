@@ -1,0 +1,5 @@
+{
+  "name": "Ghost Pay",
+  "description": "A Solana-based non-custodial stealth address protocol interface for private transactions.",
+  "requestFramePermissions": []
+}
